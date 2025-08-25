@@ -3,81 +3,46 @@
 <meta charset="utf-8">
 <title>IPew Attack Map — AZ DES</title>
 <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
-
 <style>
   body { margin:0; padding:0; background:#000; color:#fff; }
-
-  #titlediv{
+  #titlediv {
     font-family: monospace; text-align:center; font-size:48px;
     position:fixed; width:100%; height:50px; color:#fff; background:#000;
     padding:5px; top:0; z-index:10; overflow-y:auto;
   }
-
-  /* Zoom toolbar (does not affect IPew init) */
-  #toolbar{
-    position:fixed; left:0; right:0; top:55px; z-index:11;
-    display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:center;
-    padding:8px 10px; background:rgba(0,0,0,.85); border-bottom:1px solid #222;
-    font-family: monospace; font-size:13px;
-  }
-  #toolbar button{
-    cursor:pointer; background:#111; color:#eee; border:1px solid #333;
-    padding:6px 10px; border-radius:6px;
-  }
-  #toolbar button:hover{ background:#151515; }
-
-  #container1{
-    position:relative; width:100vw; height:100vh; max-width:100%; max-height:100%;
-  }
-
-  #attackdiv{
+  #attackdiv {
     font-family: monospace; font-size:10px;
     position:fixed; width:50%; height:100px; color:#fff; background:#000;
-    padding:5px; bottom:0; z-index:12; overflow-y:auto; border-top:1px solid #222;
+    padding:5px; bottom:0; z-index:10; overflow-y:auto; border-top:1px solid #222;
   }
-
-  #about{ display:none; }
-  #aboutdiv{ text-align:right; width:100px; height:100px; top:0; right:0; position:fixed; padding:10px; color:#fff; z-index:12; }
-  #ccdiv{ text-align:right; width:100px; height:20px; bottom:0; right:0; position:fixed; padding:5px; color:#fff; z-index:12; }
-
-  /* SimpleModal defaults */
+  #container1 {
+    position:relative; width:100vw; height:100vh; max-width:100%; max-height:100%;
+  }
+  #about { display:none; }
+  #aboutdiv { text-align:right; width:100px; height:100px; top:0; right:0; position:fixed; padding:10px; color:#fff; z-index:12; }
+  #ccdiv { text-align:right; width:100px; height:20px; bottom:0; right:0; position:fixed; padding:5px; color:#fff; z-index:12; }
+  /* SimpleModal */
   #simplemodal-overlay { background-color:#000; }
-  #simplemodal-container {height:460px; width:600px; color:#bbb; background:#333; border:4px solid #444; padding:12px;}
-  #simplemodal-container .simplemodal-data {padding:8px;}
-  #simplemodal-container code {background:#141414; border-left:3px solid #65B43D; color:#bbb; display:block; font-size:12px; margin-bottom:12px; padding:4px 6px 6px;}
-  #simplemodal-container a {color:#ddd;}
-  #simplemodal-container a.modalCloseImg {background:url(x.png) no-repeat; width:25px; height:29px; display:inline; z-index:3200; position:absolute; top:-15px; right:-18px; cursor:pointer;}
-  #simplemodal-container h3 {color:#84b8d9;}
+  #simplemodal-container { height:460px; width:600px; color:#bbb; background:#333; border:4px solid #444; padding:12px; }
+  #simplemodal-container .simplemodal-data { padding:8px; }
+  #simplemodal-container code { background:#141414; border-left:3px solid #65B43D; color:#bbb; display:block; font-size:12px; margin-bottom:12px; padding:4px 6px 6px; }
+  #simplemodal-container a { color:#ddd; }
+  #simplemodal-container a.modalCloseImg { background:url(x.png) no-repeat; width:25px; height:29px; display:inline; z-index:3200; position:absolute; top:-15px; right:-18px; cursor:pointer; }
+  #simplemodal-container h3 { color:#84b8d9; }
 </style>
 
-<!-- Original libs -->
+<!-- libs -->
 <script src="https://d3js.org/d3.v3.min.js"></script>
 <script src="https://d3js.org/d3.geo.projection.v0.min.js"></script>
 <script src="https://d3js.org/topojson.v1.min.js"></script>
 <script src="https://datamaps.github.io/scripts/datamaps.world.min.js?v=1"></script>
 <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
 <script src="jquery.simplemodal-1.4.4.js"></script>
-
-<script>
-  function about(){ $("#about").modal(); }
-  /* (Optional) helpers to read/update URL params for your other toggles */
-  function getParam(name){ var url=new URL(window.location.href); return url.searchParams.get(name); }
-  function setParams(obj){
-    var url=new URL(window.location.href);
-    Object.keys(obj).forEach(function(k){
-      var v=obj[k];
-      if(v===null||v===undefined||v==='') url.searchParams.delete(k);
-      else url.searchParams.set(k,v);
-    });
-    if(!url.searchParams.get('org_name')) url.searchParams.set('org_name','AZ%20DES');
-    window.location.href=url.toString();
-  }
-</script>
+<script>function about(){ $("#about").modal(); }</script>
 </head>
 
 <body>
-
-  <!-- sounds (unchanged) -->
+  <!-- sounds -->
   <audio id="starwars" src="Blaster-Solo.wav" preload="auto"></audio>
   <audio id="tng" src="tng_torpedo_clean.mp3" preload="auto"></audio>
   <audio id="b5" src="B5-interceptor1.wav" preload="auto"></audio>
@@ -88,82 +53,50 @@
   <audio id="china" src="china.mp3" preload="auto"></audio>
   <audio id="timallen" src="timallen.wav" preload="auto"></audio>
 
-  <!-- Title -->
-  <div id="titlediv">IPew Attack Map</div>
-
-  <!-- NEW: Zoom toolbar (city presets + reset). This does NOT change drill_mode. -->
-  <div id="toolbar">
-    <strong>Zoom:</strong>
-    <button id="zoom-phx">Phoenix</button>
-    <button id="zoom-tus">Tucson</button>
-    <button id="zoom-mesa">Mesa</button>
-    <button id="zoom-reset">Reset</button>
-    <span style="margin-left:12px;"></span>
-    <strong>Options:</strong>
-    <button onclick="setParams({bad_day: getParam('bad_day')? null:1})">Busy Day</button>
-    <button onclick="setParams({nofx: getParam('nofx')? null:1})">Toggle Sounds</button>
-    <button onclick="(function(){ const g=getParam('greenattacks'); const r=getParam('redattacks'); if(g){ setParams({greenattacks:null,redattacks:1}); } else if(r){ setParams({redattacks:null}); } else { setParams({greenattacks:1,redattacks:null}); } })()">Green/Red</button>
-  </div>
-
-  <!-- Map container -->
   <center><div id="container1"></div></center>
-
-  <!-- Live log (unchanged) -->
+  <div id="titlediv">IPew Attack Map</div>
   <div id="attackdiv"></div>
-
   <div id="aboutdiv"><i class="fa fa-question-circle fa-2x" onClick="about();"></i></div>
+
   <div id="ccdiv">
     <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">
       <img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/80x15.png" />
     </a>
   </div>
 
-  <!-- UPDATED: About modal text (your explanation lives here) -->
+  <!-- UPDATED: About modal content -->
   <div id="about">
     <h3>About this demo</h3>
     <p>
       This is a Norse/IPew‑style “pew‑pew” cyber attack map adapted for AZ DES leadership demos.
       Sources are sampled from global lists; with <code>drill_mode=1</code> all arcs land at a chosen
       Arizona location (Phoenix, Tucson, Mesa). It’s an executive‑awareness visualization, not a
-      forensic tool. Maintain context: colours/volume are illustrative, not real incident counts.
+      forensic tool. Colours/volume are illustrative, not incident counts.
     </p>
     <p>
-      Controls: use the Zoom bar for city presets or mouse wheel + drag to explore. For a dramatic
-      demo, toggle <code>bad_day=1</code>; to silence effects, add <code>nofx=1</code>. You can embed
-      this page in a dashboard and swap destinations via URL parameters.
+      Controls: you can switch destinations by URL parameters (e.g., <code>drill_mode=1&lat=33.4484&lon=-112.0740</code>).
+      For a dramatic demo, add <code>bad_day=1</code>. To silence effects, add <code>nofx=1</code>. This page can be embedded
+      in a dashboard.
     </p>
     <p>
-      Code is from <a target=_blank href="https://github.com/hrbrmstr/pewpew">hrbrmstr/pewpew</a>
-      with light UI additions.
+      Code from <a target=_blank href="https://github.com/hrbrmstr/pewpew">hrbrmstr/pewpew</a> with light UI text edits.
     </p>
   </div>
 
-  <!-- keep the close anchor the original code uses -->
+  <!-- keep the close anchor -->
   <a href="#!" class="modal-close" title="Close this modal"
       data-dismiss="modal" data-close="Close">&times;</a>
 
-  <!-- ==== ORIGINAL IPEW SCRIPT (kept) + zoom plugin below ==== -->
   <script>
-    /* ---------- Original IPew configuration ---------- */
-    attack_min = 100;
-    attack_max = 2000;
+    /* ===== ORIGINAL IPEW SCRIPT (unchanged) ===== */
+    attack_min=100; attack_max=2000;
 
-    attack_type = [ "any port scan in a storm", "ssh brutish force", "Thought Leader Tweet",
-                    "SYN FLOOD BA-BY", "Spotty", "Heartbleed Hotel", "Po_ODLE", "Sharknado",
-                    "CORGI Attack", "Ping of DOOM", "Conficker", "Goldfinger", "SANDPAPER",
-                    "SNAILshock", "Spaghetti RAT", "Driduplex" ];
-
-    audio_type = [ "starwars", "tng", "b5", "wargames", "pew", "galaga", "asteroids", "china", "timallen" ];
+    attack_type=[ "any port scan in a storm","ssh brutish force","Thought Leader Tweet","SYN FLOOD BA-BY","Spotty","Heartbleed Hotel","Po_ODLE","Sharknado","CORGI Attack","Ping of DOOM","Conficker","Goldfinger","SANDPAPER","SNAILshock","Spaghetti RAT","Driduplex" ];
+    audio_type=[ "starwars","tng","b5","wargames","pew","galaga","asteroids","china","timallen" ];
 
     $.extend({
-      getUrlVars: function(){
-        var vars=[], hash;
-        var qPos=window.location.href.indexOf('?');
-        var hashes=(qPos===-1)?[]:window.location.href.slice(qPos+1).split('&');
-        for(var i=0;i<hashes.length;i++){ hash=hashes[i].split('='); vars.push(hash[0]); vars[hash[0]]=hash[1]; }
-        return vars;
-      },
-      getUrlVar: function(name){ return $.getUrlVars()[name]; }
+      getUrlVars:function(){var vars=[],hash;var qPos=window.location.href.indexOf('?');var hashes=(qPos===-1)?[]:window.location.href.slice(qPos+1).split('&');for(var i=0;i<hashes.length;i++){hash=hashes[i].split('=');vars.push(hash[0]);vars[hash[0]]=hash[1];}return vars;},
+      getUrlVar:function(name){return $.getUrlVars()[name];}
     });
 
     var norse_mode=$.getUrlVar('norse_mode');
@@ -172,27 +105,27 @@
     var chatt_mode=$.getUrlVar('chatt_mode');
     var china_mode=$.getUrlVar('china_mode');
     var dprk_mode=$.getUrlVar('dprk_mode');
-    var employee_mode=$$.getUrlVar ? $.getUrlVar('employee_mode') : undefined;
-    var employee_fname=$.getUrlVar('employee_fname');
-    var employee_lname=$.getUrlVar('employee_lname');
+    var employee_mode=$.getUrlVar('employee_mode');
+    var employee_fname=$$.getUrlVar ? $.getUrlVar('employee_fname') : undefined;
+    var employee_lname=$$.getUrlVar ? $.getUrlVar('employee_lname') : undefined;
     var origin=$.getUrlVar('origin');
-    var random_mode=$$.getUrlVar ? $.getUrlVar('random_mode') : undefined;
+    var random_mode=$.getUrlVar('random_mode');
     var tng=$.getUrlVar('tng');
     var wargames=$.getUrlVar('wargames');
     var b5=$.getUrlVar('b5');
-    var nofx=$.getUrlVar('nofx');
-    var pew=$.getUrlVar('pew');
+    var nofx=$$.getUrlVar ? $.getUrlVar('nofx') : undefined;
+    var pew=$$.getUrlVar ? $.getUrlVar('pew') : undefined;
     var allfx=$.getUrlVar('allfx');
-    var galaga=$.getUrlVar('galaga');
-    var asteroids=$.getUrlVar('asteroids');
-    var china=$.getUrlVar('china');
+    var galaga=$$.getUrlVar ? $.getUrlVar('galaga') : undefined;
+    var asteroids=$$.getUrlVar ? $.getUrlVar('asteroids') : undefined;
+    var china=$$.getUrlVar ? $.getUrlVar('china') : undefined;
     var timallen=$$.getUrlVar ? $.getUrlVar('timallen') : undefined;
     var drill_mode=$.getUrlVar('drill_mode');
     var in_lat=$.getUrlVar('lat');
-    var in_lon=$$.getUrlVar ? $.getUrlVar('lon') : undefined;
+    var in_lon=$.getUrlVar('lon');
     var destination=$.getUrlVar('destination');
     var greenattacks=$.getUrlVar('greenattacks');
-    var redattacks=$$.getUrlVar ? $.getUrlVar('redattacks') : undefined;
+    var redattacks=$.getUrlVar('redattacks');
 
     snd_id="starwars";
     if(typeof tng!=='undefined') snd_id="tng";
@@ -207,32 +140,24 @@
     if(typeof bad_day!=='undefined'){ attack_min=200; attack_max=200; }
     if(typeof org_name!=='undefined'){ $("#titlediv").text(decodeURI(org_name)+" IPew Attack Map").html(); }
 
-    /* ---------- Fixed queue helpers (unchanged) ---------- */
-    function FixedQueue(size, initialValues){
-      initialValues=(initialValues||[]);
-      var queue=Array.apply(null, initialValues);
-      queue.fixedSize=size;
-      queue.push=FixedQueue.push; queue.splice=FixedQueue.splice; queue.unshift=FixedQueue.unshift;
-      FixedQueue.trimTail.call(queue); return queue;
-    }
-    FixedQueue.trimHead=function(){ if(this.length<=this.fixedSize){return;} Array.prototype.splice.call(this,0,(this.length-this.fixedSize)); };
-    FixedQueue.trimTail=function(){ if(this.length<=this.fixedSize){return;} Array.prototype.splice.call(this,this.fixedSize,(this.length-this.fixedSize)); };
-    FixedQueue.wrapMethod=function(methodName,trimMethod){ var wrapper=function(){ var method=Array.prototype[methodName]; var result=method.apply(this,arguments); trimMethod.call(this); return(result); }; return(wrapper); };
+    function FixedQueue(size,initialValues){initialValues=(initialValues||[]);var queue=Array.apply(null,initialValues);queue.fixedSize=size;queue.push=FixedQueue.push;queue.splice=FixedQueue.splice;queue.unshift=FixedQueue.unshift;FixedQueue.trimTail.call(queue);return(queue);}
+    FixedQueue.trimHead=function(){if(this.length<=this.fixedSize){return;}Array.prototype.splice.call(this,0,(this.length-this.fixedSize));};
+    FixedQueue.trimTail=function(){if(this.length<=this.fixedSize){return;}Array.prototype.splice.call(this,this.fixedSize,(this.length-this.fixedSize));};
+    FixedQueue.wrapMethod=function(methodName,trimMethod){var wrapper=function(){var method=Array.prototype[methodName];var result=method.apply(this,arguments);trimMethod.call(this);return(result);};return(wrapper);};
     FixedQueue.push=FixedQueue.wrapMethod("push",FixedQueue.trimHead);
     FixedQueue.splice=FixedQueue.wrapMethod("splice",FixedQueue.trimTail);
     FixedQueue.unshift=FixedQueue.wrapMethod("unshift",FixedQueue.trimTail);
 
-    var rand=function(min,max){ return Math.random()*(max-min)+min; };
-    function getRandomInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
-    function getOctet(){ return Math.round(Math.random()*255); }
-    function randomIP(){ return(getOctet()+'.'+getOctet()+'.'+getOctet()+'.'+getOctet()); }
-    function getStroke(){ return Math.round(Math.random()*100); }
-    function getDestination(){ return Math.round(Math.random()*100); }
+    var rand=function(min,max){return Math.random()*(max-min)+min;};
+    function getRandomInt(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+    function getOctet(){return Math.round(Math.random()*255);}
+    function randomIP(){return(getOctet()+'.'+getOctet()+'.'+getOctet()+'.'+getOctet());}
+    function getStroke(){return Math.round(Math.random()*100);}
+    function getDestination(){return Math.round(Math.random()*100);}
 
     var countries=[9,22,29,49,56,58,78,82,102,117,139,176,186];
     var weight=[0.000,0.001,0.004,0.008,0.009,0.037,0.181,0.002,0.000,0.415,0.006,0.075,0.088];
 
-    /* ---------- Build basemap ---------- */
     var map=new Datamap({
       scope:'world',
       element:document.getElementById('container1'),
@@ -246,77 +171,22 @@
       }
     });
 
-    /* ---------- Load centroid CSVs (unchanged) ---------- */
     var centers=[]; var slatlong=[]; var cnlatlong=[];
-    d3.tsv("country_centroids_primary.csv", function(data){ centers=data; });
-    d3.csv("samplatlong.csv", function(data){ slatlong=data; });
-    d3.csv("cnlatlong.csv", function(data){ cnlatlong=data; });
+    d3.tsv("country_centroids_primary.csv",function(data){ centers=data; });
+    d3.csv("samplatlong.csv",function(data){ slatlong=data; });
+    d3.csv("cnlatlong.csv",function(data){ cnlatlong=data; });
 
-    /* ---------- NEW: D3 zoom/pan on the map (correct centering math) ---------- */
-    (function enableZooming(){
-      var svg = d3.select('#container1').select('svg');
-      var root = svg.select('g');  // the <g> Datamaps uses
-      // Derive viewport size from the actual SVG node (more reliable than window)
-      var width  = svg.node().clientWidth  || parseInt(svg.attr('width'))  || window.innerWidth;
-      var height = svg.node().clientHeight || parseInt(svg.attr('height')) || window.innerHeight;
+    var hits=FixedQueue(7,[]); var boom=FixedQueue(7,[]);
 
-      var zoom = d3.behavior.zoom()
-        .translate([0,0])
-        .scale(1)
-        .scaleExtent([1, 16])
-        .on("zoom", function(){
-          var e = d3.event;
-          root.attr("transform", "translate(" + e.translate + ") scale(" + e.scale + ")");
-        });
-
-      svg.call(zoom).on("dblclick.zoom", null); // smoother UX
-
-      function project(lon, lat){
-        // Datamaps uses [lon,lat] for its underlying d3 projection
-        return map.projection([lon, lat]); // returns [x, y] in pixels
-      }
-
-      function zoomTo(lon, lat, k, ms){
-        var p = project(lon, lat);        // [x, y] in current projection coords
-        var tx = (width/2)  - k * p[0];
-        var ty = (height/2) - k * p[1];
-        // Sync internal zoom state so wheel/drag continue naturally
-        zoom.translate([tx, ty]).scale(k);
-        root.transition().duration(ms||650)
-            .attr("transform", "translate(" + tx + "," + ty + ") scale(" + k + ")");
-      }
-
-      var PHX = { lon:-112.0740, lat:33.4484, k:8.5 };
-      var TUS = { lon:-110.9747, lat:32.2226, k:9.5 };
-      var MESA= { lon:-111.8315, lat:33.4152, k:10.0 };
-
-      document.getElementById('zoom-phx').onclick = function(){ zoomTo(PHX.lon, PHX.lat, PHX.k, 700); };
-      document.getElementById('zoom-tus').onclick = function(){ zoomTo(TUS.lon, TUS.lat, TUS.k, 700); };
-      document.getElementById('zoom-mesa').onclick= function(){ zoomTo(MESA.lon, MESA.lat, MESA.k, 700); };
-      document.getElementById('zoom-reset').onclick=function(){ zoomTo(-98, 38, 1.2, 700); }; // roughly CONUS
-
-      // If you arrive with drill_mode coords, gently zoom there
-      if(typeof drill_mode!=='undefined' && in_lat && in_lon){
-        setTimeout(function(){ zoomTo(parseFloat(in_lon), parseFloat(in_lat), 6.5, 800); }, 900);
-      }
-    })();
-
-    /* ---------- Hit/boom queues ---------- */
-    var hits=FixedQueue(7,[]);
-    var boom=FixedQueue(7,[]);
-
-    /* ---------- Attack generator (unchanged) ---------- */
     var attacks={
       interval:getRandomInt(attack_min,attack_max),
       init:function(){ setTimeout(jQuery.proxy(this.getData,this), this.interval); },
       getData:function(){
         if(typeof norse_mode!=='undefined'){ return; }
         if(typeof random_mode!=='undefined'){ Math.floor((Math.random()*slatlong.length)); }
-
         dst=Math.floor((Math.random()*slatlong.length));
         src=Math.floor((Math.random()*slatlong.length));
         if(dst==src){ dst=src+1; if(dst>slatlong.length-1){ dst=src-1; } }
-
         if(typeof allfx!=='undefined'){ snd_id=audio_type[Math.floor((Math.random()*audio_type.length))]; }
         if(typeof nofx==='undefined'){ document.getElementById(snd_id).load(); document.getElementById(snd_id).play(); }
 
@@ -332,57 +202,4 @@
         } else if(typeof dprk_mode!=='undefined'){
           srclat=39.0194; srclong=125.7381; which_attack="ZOMG NORTH KOREAZ!!!"; srccountry="kp";
         } else if(typeof chatt_mode!=='undefined'){
-          srclat=35.0456297; srclong=-85.30968; which_attack="OMG NATION STATE CHATTANOOGA!!!"; srccountry="usa";
-        } else if(typeof employee_mode!=='undefined'){
-          if(typeof in_lat!=='undefined' && typeof in_lon!=='undefined'){ srclat=in_lat; srclong=in_lon; }
-          which_attack="Former employee attack";
-          if(typeof employee_fname!=='undefined' && typeof employee_lname!=='undefined'){ which_attack += ":"+employee_fname+" "+employee_lname; }
-          srccountry="usa";
-        } else if(typeof origin!=='undefined'){
-          srccountry=origin.toUpperCase();
-          var center_id=0;
-          for(i=0;i<centers.length;i++){ center_id=i; if(centers[i].FIPS10===srccountry){ break; } }
-          srccountry=origin.toLowerCase();
-          srclat=centers[center_id].LAT; srclong=centers[center_id].LONG;
-        }
-
-        if(typeof destination!=='undefined' && getDestination()<80){
-          dstcountry=destination.toUpperCase();
-          var center_id=0;
-          for(i=0;i<centers.length;i++){ center_id=i; if(centers[i].FIPS10===dstcountry){ break; } }
-          dstcountry=destination.toLowerCase();
-          attackdiv_slatlong=dstcountry;
-          dstlat=centers[center_id].LAT; dstlong=centers[center_id].LONG;
-        } else {
-          attackdiv_slatlong=slatlong[dst]["country"];
-        }
-
-        if(typeof greenattacks!=='undefined'){ strokeColor='green'; }
-        else if(typeof redattacks!=='undefined'){ strokeColor='red'; }
-        else { strokeColor=(getStroke()<70)?'green':'red'; }
-
-        if(typeof drill_mode!=='undefined'){ dstlat=in_lat; dstlong=in_lon; }
-
-        if(!document.hidden){
-          hits.push({ origin:{latitude:+srclat, longitude:+srclong}, destination:{latitude:+dstlat, longitude:+dstlong} });
-          map.arc(hits, {strokeWidth:2, strokeColor:strokeColor});
-
-          boom.push({ radius:7, latitude:+dstlat, longitude:+dstlong, fillOpacity:0.5, attk:which_attack });
-          map.bubbles(boom, { popupTemplate:function(geo,data){ return '<div class="hoverinfo">'+data.attk+'</div>'; } });
-
-          $('#attackdiv').append(srccountry + " (" + randomIP() + ") " +
-            " <span style='color:red'>attacks</span> " + attackdiv_slatlong + " (" + randomIP() + ") " +
-            " <span style='color:steelblue'>(" + which_attack + ")</span> " + "<br/>");
-          $('#attackdiv').animate({scrollTop: $('#attackdiv').prop('scrollHeight')}, 500);
-        }
-        this.interval=getRandomInt(attack_min,attack_max);
-        this.init();
-      }
-    };
-
-    attacks.init();
-    d3.select(window).on('resize', function(){ location.reload(); });
-  </script>
-
-</body>
-</html>
+          srclat=
