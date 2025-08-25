@@ -13,7 +13,7 @@
     padding:5px; top:0; z-index:10; overflow-y:auto;
   }
 
-  /* NEW: city zoom toolbar (does not interfere with IPew init) */
+  /* Zoom toolbar (does not affect IPew init) */
   #toolbar{
     position:fixed; left:0; right:0; top:55px; z-index:11;
     display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:center;
@@ -30,21 +30,17 @@
     position:relative; width:100vw; height:100vh; max-width:100%; max-height:100%;
   }
 
-  /* Bottom panel now has info + live log */
   #attackdiv{
-    font-family: monospace; font-size:11px;
-    position:fixed; left:0; right:0; height:160px; color:#fff; background:#000;
-    padding:8px 10px; bottom:0; z-index:12; overflow-y:auto; border-top:1px solid #222;
+    font-family: monospace; font-size:10px;
+    position:fixed; width:50%; height:100px; color:#fff; background:#000;
+    padding:5px; bottom:0; z-index:12; overflow-y:auto; border-top:1px solid #222;
   }
-  #attackdiv h4{ margin:0 0 6px 0; font-weight:600; color:#9fe3bf; }
-  #attackdiv p{ margin:0 0 8px 0; color:#cfcfcf; line-height:1.35; }
-  #attacklog{ font-size:10px; color:#fff; margin-top:6px; }
 
   #about{ display:none; }
   #aboutdiv{ text-align:right; width:100px; height:100px; top:0; right:0; position:fixed; padding:10px; color:#fff; z-index:12; }
   #ccdiv{ text-align:right; width:100px; height:20px; bottom:0; right:0; position:fixed; padding:5px; color:#fff; z-index:12; }
 
-  /* SimpleModal defaults (unchanged) */
+  /* SimpleModal defaults */
   #simplemodal-overlay { background-color:#000; }
   #simplemodal-container {height:460px; width:600px; color:#bbb; background:#333; border:4px solid #444; padding:12px;}
   #simplemodal-container .simplemodal-data {padding:8px;}
@@ -64,8 +60,7 @@
 
 <script>
   function about(){ $("#about").modal(); }
-
-  /* URL param helpers (used by optional controls) */
+  /* (Optional) helpers to read/update URL params for your other toggles */
   function getParam(name){ var url=new URL(window.location.href); return url.searchParams.get(name); }
   function setParams(obj){
     var url=new URL(window.location.href);
@@ -96,7 +91,7 @@
   <!-- Title -->
   <div id="titlediv">IPew Attack Map</div>
 
-  <!-- NEW: Zoom toolbar (city presets + reset). These DO NOT change URL drill_mode. -->
+  <!-- NEW: Zoom toolbar (city presets + reset). This does NOT change drill_mode. -->
   <div id="toolbar">
     <strong>Zoom:</strong>
     <button id="zoom-phx">Phoenix</button>
@@ -113,38 +108,41 @@
   <!-- Map container -->
   <center><div id="container1"></div></center>
 
-  <!-- Bottom info + log -->
-  <div id="attackdiv">
-    <h4>What you’re seeing</h4>
-    <p>
-      This demo mimics a “pew‑pew” cyber attack map. Sources are sampled from a global list;
-      with <code>drill_mode=1</code> arcs are forced to a chosen destination (e.g., Phoenix/Tucson/Mesa) so leadership can
-      quickly grasp <em>where</em> inbound traffic appears to originate. This is an illustrative display for executive
-      awareness and SOC dashboards — not a forensic tool.
-    </p>
-    <div id="attacklog"></div>
-  </div>
+  <!-- Live log (unchanged) -->
+  <div id="attackdiv"></div>
 
   <div id="aboutdiv"><i class="fa fa-question-circle fa-2x" onClick="about();"></i></div>
-
   <div id="ccdiv">
     <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">
       <img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/80x15.png" />
     </a>
   </div>
 
+  <!-- UPDATED: About modal text (your explanation lives here) -->
   <div id="about">
-    <h3>About IPew</h3>
-    Attack maps are the <span style="font-family: monospace;">&lt;blink&gt;</span> tag of information security. They are pure eye candy,
-    meant to scare the general public and <i>WOW</i> unsuspecting executives visiting Security Operations Centers…
-    <br/><br/>Check the <a target=_blank href="https://github.com/hrbrmstr/pewpew">GitHub repo</a> for full docs.
+    <h3>About this demo</h3>
+    <p>
+      This is a Norse/IPew‑style “pew‑pew” cyber attack map adapted for AZ DES leadership demos.
+      Sources are sampled from global lists; with <code>drill_mode=1</code> all arcs land at a chosen
+      Arizona location (Phoenix, Tucson, Mesa). It’s an executive‑awareness visualization, not a
+      forensic tool. Maintain context: colours/volume are illustrative, not real incident counts.
+    </p>
+    <p>
+      Controls: use the Zoom bar for city presets or mouse wheel + drag to explore. For a dramatic
+      demo, toggle <code>bad_day=1</code>; to silence effects, add <code>nofx=1</code>. You can embed
+      this page in a dashboard and swap destinations via URL parameters.
+    </p>
+    <p>
+      Code is from <a target=_blank href="https://github.com/hrbrmstr/pewpew">hrbrmstr/pewpew</a>
+      with light UI additions.
+    </p>
   </div>
 
   <!-- keep the close anchor the original code uses -->
   <a href="#!" class="modal-close" title="Close this modal"
       data-dismiss="modal" data-close="Close">&times;</a>
 
-  <!-- ==== ORIGINAL IPEW SCRIPT (kept) + small tweaks ==== -->
+  <!-- ==== ORIGINAL IPEW SCRIPT (kept) + zoom plugin below ==== -->
   <script>
     /* ---------- Original IPew configuration ---------- */
     attack_min = 100;
@@ -174,11 +172,11 @@
     var chatt_mode=$.getUrlVar('chatt_mode');
     var china_mode=$.getUrlVar('china_mode');
     var dprk_mode=$.getUrlVar('dprk_mode');
-    var employee_mode=$.getUrlVar('employee_mode');
+    var employee_mode=$$.getUrlVar ? $.getUrlVar('employee_mode') : undefined;
     var employee_fname=$.getUrlVar('employee_fname');
     var employee_lname=$.getUrlVar('employee_lname');
     var origin=$.getUrlVar('origin');
-    var random_mode=$.getUrlVar('random_mode');
+    var random_mode=$$.getUrlVar ? $.getUrlVar('random_mode') : undefined;
     var tng=$.getUrlVar('tng');
     var wargames=$.getUrlVar('wargames');
     var b5=$.getUrlVar('b5');
@@ -188,13 +186,13 @@
     var galaga=$.getUrlVar('galaga');
     var asteroids=$.getUrlVar('asteroids');
     var china=$.getUrlVar('china');
-    var timallen=$.getUrlVar('timallen');
+    var timallen=$$.getUrlVar ? $.getUrlVar('timallen') : undefined;
     var drill_mode=$.getUrlVar('drill_mode');
     var in_lat=$.getUrlVar('lat');
-    var in_lon=$.getUrlVar('lon');
+    var in_lon=$$.getUrlVar ? $.getUrlVar('lon') : undefined;
     var destination=$.getUrlVar('destination');
     var greenattacks=$.getUrlVar('greenattacks');
-    var redattacks=$.getUrlVar('redattacks');
+    var redattacks=$$.getUrlVar ? $.getUrlVar('redattacks') : undefined;
 
     snd_id="starwars";
     if(typeof tng!=='undefined') snd_id="tng";
@@ -254,57 +252,50 @@
     d3.csv("samplatlong.csv", function(data){ slatlong=data; });
     d3.csv("cnlatlong.csv", function(data){ cnlatlong=data; });
 
-    /* ---------- NEW: D3 zoom/pan on the map ---------- */
+    /* ---------- NEW: D3 zoom/pan on the map (correct centering math) ---------- */
     (function enableZooming(){
-      // Datamaps builds one <svg> with a single root <g>. We transform that <g>.
       var svg = d3.select('#container1').select('svg');
-      var root = svg.select('g');           // transform target
-      var width = parseInt(svg.attr('width')) || svg.node().clientWidth || window.innerWidth;
-      var height = parseInt(svg.attr('height')) || svg.node().clientHeight || window.innerHeight;
+      var root = svg.select('g');  // the <g> Datamaps uses
+      // Derive viewport size from the actual SVG node (more reliable than window)
+      var width  = svg.node().clientWidth  || parseInt(svg.attr('width'))  || window.innerWidth;
+      var height = svg.node().clientHeight || parseInt(svg.attr('height')) || window.innerHeight;
 
-      // d3 v3 zoom behavior
       var zoom = d3.behavior.zoom()
         .translate([0,0])
         .scale(1)
-        .scaleExtent([1, 14])               // allow close zooms
+        .scaleExtent([1, 16])
         .on("zoom", function(){
           var e = d3.event;
           root.attr("transform", "translate(" + e.translate + ") scale(" + e.scale + ")");
         });
 
-      svg.call(zoom).on("dblclick.zoom", null); // disable dblclick zoom bounce
+      svg.call(zoom).on("dblclick.zoom", null); // smoother UX
 
-      // Helper: project lon/lat to pixel using datamaps' projection
       function project(lon, lat){
-        // Datamaps uses [lon,lat]
-        return map.projection([lon, lat]);
+        // Datamaps uses [lon,lat] for its underlying d3 projection
+        return map.projection([lon, lat]); // returns [x, y] in pixels
       }
 
-      // Helper: programmatic zoom to lon/lat with a target scale
       function zoomTo(lon, lat, k, ms){
-        var p = project(lon, lat);     // [x,y] in current projection
-        var tx = width/2 - k * p[0];
+        var p = project(lon, lat);        // [x, y] in current projection coords
+        var tx = (width/2)  - k * p[0];
         var ty = (height/2) - k * p[1];
-
-        // update behavior internal state so wheel/drag continue from here
+        // Sync internal zoom state so wheel/drag continue naturally
         zoom.translate([tx, ty]).scale(k);
-
-        root.transition().duration(ms||750)
-          .attr("transform", "translate(" + tx + "," + ty + ") scale(" + k + ")");
+        root.transition().duration(ms||650)
+            .attr("transform", "translate(" + tx + "," + ty + ") scale(" + k + ")");
       }
 
-      // City presets (tight enough to separate PHX/TUS/Mesa)
-      var PHX = { lon:-112.0740, lat:33.4484, k:8 };
-      var TUS = { lon:-110.9747, lat:32.2226, k:9 };
-      var MESA= { lon:-111.8315, lat:33.4152, k:10 };
+      var PHX = { lon:-112.0740, lat:33.4484, k:8.5 };
+      var TUS = { lon:-110.9747, lat:32.2226, k:9.5 };
+      var MESA= { lon:-111.8315, lat:33.4152, k:10.0 };
 
-      // Wire buttons
-      document.getElementById('zoom-phx').onclick = function(){ zoomTo(PHX.lon, PHX.lat, PHX.k, 650); };
-      document.getElementById('zoom-tus').onclick = function(){ zoomTo(TUS.lon, TUS.lat, TUS.k, 650); };
-      document.getElementById('zoom-mesa').onclick= function(){ zoomTo(MESA.lon, MESA.lat, MESA.k, 650); };
-      document.getElementById('zoom-reset').onclick=function(){ zoomTo(-98, 38, 1.2, 650); }; // reset view (roughly CONUS)
+      document.getElementById('zoom-phx').onclick = function(){ zoomTo(PHX.lon, PHX.lat, PHX.k, 700); };
+      document.getElementById('zoom-tus').onclick = function(){ zoomTo(TUS.lon, TUS.lat, TUS.k, 700); };
+      document.getElementById('zoom-mesa').onclick= function(){ zoomTo(MESA.lon, MESA.lat, MESA.k, 700); };
+      document.getElementById('zoom-reset').onclick=function(){ zoomTo(-98, 38, 1.2, 700); }; // roughly CONUS
 
-      // If you arrived with drill_mode coords in the URL, auto-zoom there a bit:
+      // If you arrive with drill_mode coords, gently zoom there
       if(typeof drill_mode!=='undefined' && in_lat && in_lon){
         setTimeout(function(){ zoomTo(parseFloat(in_lon), parseFloat(in_lat), 6.5, 800); }, 900);
       }
@@ -314,7 +305,7 @@
     var hits=FixedQueue(7,[]);
     var boom=FixedQueue(7,[]);
 
-    /* ---------- Attack generator (unchanged, except log target) ---------- */
+    /* ---------- Attack generator (unchanged) ---------- */
     var attacks={
       interval:getRandomInt(attack_min,attack_max),
       init:function(){ setTimeout(jQuery.proxy(this.getData,this), this.interval); },
@@ -379,13 +370,11 @@
           boom.push({ radius:7, latitude:+dstlat, longitude:+dstlong, fillOpacity:0.5, attk:which_attack });
           map.bubbles(boom, { popupTemplate:function(geo,data){ return '<div class="hoverinfo">'+data.attk+'</div>'; } });
 
-          // *** write to the new #attacklog so Info text stays fixed ***
-          $('#attacklog').append(srccountry + " (" + randomIP() + ") " +
+          $('#attackdiv').append(srccountry + " (" + randomIP() + ") " +
             " <span style='color:red'>attacks</span> " + attackdiv_slatlong + " (" + randomIP() + ") " +
             " <span style='color:steelblue'>(" + which_attack + ")</span> " + "<br/>");
           $('#attackdiv').animate({scrollTop: $('#attackdiv').prop('scrollHeight')}, 500);
         }
-
         this.interval=getRandomInt(attack_min,attack_max);
         this.init();
       }
@@ -394,5 +383,6 @@
     attacks.init();
     d3.select(window).on('resize', function(){ location.reload(); });
   </script>
+
 </body>
 </html>
