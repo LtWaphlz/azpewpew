@@ -316,7 +316,7 @@
         var strokeColor='green';
         if(typeof greenattacks!=='undefined'){ strokeColor='green'; }
         else if(typeof redattacks!=='undefined'){ strokeColor='red'; }
-        else { strokeColor=(getStroke()<70)?'green':'red'; }
+        else { strokeColor=(getRandomInt(0,99)<70)?'green':'red'; }
 
         // URL drill_mode wins unless user picked a target; user buttons override by setting currentTarget
         if (typeof drill_mode!=='undefined' && in_lat && in_lon && !currentTarget){
