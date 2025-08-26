@@ -68,7 +68,7 @@
 <script>
   function about(){ $("#about").modal(); }
 
-  // URL helpers used by the buttons
+  // URL helpers used by the option buttons
   function getParam(name){ try{ return new URL(window.location.href).searchParams.get(name); }catch(e){ return null; } }
   function setParams(obj){
     var url = new URL(window.location.href);
@@ -119,9 +119,7 @@
     <div><span class="sw" style="background:#f00;"></span>Red: higher‑severity / malicious</div>
   </div>
 
-  <div id="attackdiv">
-    <div id="log"></div>
-  </div>
+  <div id="attackdiv"><div id="log"></div></div>
 
   <div id="aboutdiv"><i class="fa fa-question-circle fa-2x" onClick="about();"></i></div>
   <div id="ccdiv">
@@ -139,19 +137,18 @@
   </div>
 
   <!-- Use Hash-Bang to maintain scroll position when closing modal -->
-  <a href="#!" class="modal-close" title="Close this modal"
-      data-dismiss="modal" data-close="Close">&times;</a>
+  <a href="#!" class="modal-close" title="Close this modal" data-dismiss="modal" data-close="Close">&times;</a>
 
   <script>
     // setup default min/max timer range for random draw
-    attack_min = 100 ;
-    attack_max = 2000 ;
+    attack_min = 100;
+    attack_max = 2000;
 
     // add/change the attack types here
     attack_type = [ "any port scan in a storm", "ssh brutish force", "Thought Leader Tweet",
                     "SYN FLOOD BA-BY", "Spotty", "Heartbleed Hotel", "Po_ODLE", "Sharknado",
                     "CORGI Attack", "Ping of DOOM", "Conficker", "Goldfinger", "SANDPAPER",
-                    "SNAILshock", "Spaghetti RAT", "Driduplex" ] ;
+                    "SNAILshock", "Spaghetti RAT", "Driduplex" ];
 
     audio_type = [ "starwars", "tng", "b5", "wargames", "pew", "galaga", "asteroids", "china", "timallen" ];
 
@@ -160,7 +157,7 @@
       getUrlVars: function(){
         var vars = [], hash;
         var qPos = window.location.href.indexOf('?');
-        var hashes = (qPos===-1) ? [] : window.location.href.slice(qPos+1).split('&');
+        var hashes = (qPos===-1)?[]:window.location.href.slice(qPos+1).split('&');
         for(var i=0;i<hashes.length;i++){
           hash = hashes[i].split('=');
           vars.push(hash[0]);
@@ -200,6 +197,9 @@
     var greenattacks = $.getUrlVar('greenattacks');
     var redattacks   = $.getUrlVar('redattacks');
 
+    // current city target for arcs (set by zoom buttons)
+    var currentTarget = null; // {lat:Number, lon:Number} or null
+
     snd_id = "starwars";
     if (typeof tng      !== 'undefined') snd_id="tng";
     if (typeof b5       !== 'undefined') snd_id="b5";
@@ -213,7 +213,7 @@
     if (typeof bad_day !== 'undefined'){ attack_min=200; attack_max=200; }
     if (typeof org_name!== 'undefined'){ $("#titlediv").text(decodeURI(org_name) + " IPew Attack Map").html(); }
 
-    // FixedQueue
+    // FixedQueue impl
     function FixedQueue(size,initialValues){
       initialValues=(initialValues||[]);
       var queue=Array.apply(null,initialValues);
@@ -230,14 +230,13 @@
     FixedQueue.splice=FixedQueue.wrapMethod("splice",FixedQueue.trimTail);
     FixedQueue.unshift=FixedQueue.wrapMethod("unshift",FixedQueue.trimTail);
 
-    var rand=function(min,max){ return Math.random()*(max-min)+min; };
     function getRandomInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
     function getOctet(){ return Math.round(Math.random()*255); }
     function randomIP(){ return(getOctet()+'.'+getOctet()+'.'+getOctet()+'.'+getOctet()); }
     function getStroke(){ return Math.round(Math.random()*100); }
     function getDestination(){ return Math.round(Math.random()*100); }
 
-    // countries + weights (unchanged)
+    // weights (unchanged)
     var countries=[9,22,29,49,56,58,78,82,102,117,139,176,186];
     var weight=[0.000,0.001,0.004,0.008,0.009,0.037,0.181,0.002,0.000,0.415,0.006,0.075,0.088];
 
@@ -254,6 +253,7 @@
         highlightBorderColor:'rgba(250, 15, 160, 0.2)', highlightBorderWidth:2
       }
     });
+    window.map = map;
 
     var centers=[], slatlong=[], cnlatlong=[];
     d3.tsv("country_centroids_primary.csv", function(data){ centers=data; });
@@ -268,15 +268,17 @@
       getData:function(){
         if(typeof norse_mode!=='undefined'){ return; }
         if(typeof random_mode!=='undefined'){ Math.floor((Math.random()*slatlong.length)); }
-        dst=Math.floor((Math.random()*slatlong.length));
-        src=Math.floor((Math.random()*slatlong.length));
+
+        var dst=Math.floor((Math.random()*slatlong.length));
+        var src=Math.floor((Math.random()*slatlong.length));
         if(dst==src){ dst=src+1; if(dst>slatlong.length-1){ dst=src-1; } }
+
         if(typeof allfx!=='undefined'){ snd_id=audio_type[Math.floor((Math.random()*audio_type.length))]; }
         if(typeof nofx==='undefined'){ document.getElementById(snd_id).load(); document.getElementById(snd_id).play(); }
 
         var srclat=slatlong[src].lat, srclong=slatlong[src].long;
         var dstlat=slatlong[dst].lat, dstlong=slatlong[dst].long;
-        which_attack=attack_type[Math.floor((Math.random()*attack_type.length))];
+        var which_attack = attack_type[Math.floor((Math.random()*attack_type.length))];
         var srccountry=slatlong[src]["country"];
 
         if(typeof china_mode!=='undefined'){
@@ -300,22 +302,30 @@
           srclat=centers[center_id].LAT; srclong=centers[center_id].LONG;
         }
 
+        // Optional destination override by country param
         if(typeof destination!=='undefined' && getDestination()<80){
-          dstcountry=destination.toUpperCase();
-          var center_id=0;
+          var center_id=0, dstcountry=destination.toUpperCase();
           for(i=0;i<centers.length;i++){ center_id=i; if(centers[i].FIPS10===dstcountry){ break; } }
-          dstcountry=destination.toLowerCase();
-          attackdiv_slatlong=dstcountry;
           dstlat=centers[center_id].LAT; dstlong=centers[center_id].LONG;
+          attackdiv_slatlong=destination.toLowerCase();
         } else {
           attackdiv_slatlong=slatlong[dst]["country"];
         }
 
+        // Color
+        var strokeColor='green';
         if(typeof greenattacks!=='undefined'){ strokeColor='green'; }
         else if(typeof redattacks!=='undefined'){ strokeColor='red'; }
         else { strokeColor=(getStroke()<70)?'green':'red'; }
 
-        if(typeof drill_mode!=='undefined'){ dstlat=in_lat; dstlong=in_lon; }
+        // URL drill_mode wins unless user picked a target; user buttons override by setting currentTarget
+        if (typeof drill_mode!=='undefined' && in_lat && in_lon && !currentTarget){
+          dstlat=in_lat; dstlong=in_lon; attackdiv_slatlong='drill target';
+        }
+        // If user selected a city, force destination there:
+        if (currentTarget && typeof currentTarget.lat==='number' && typeof currentTarget.lon==='number'){
+          dstlat=currentTarget.lat; dstlong=currentTarget.lon; attackdiv_slatlong='AZ target';
+        }
 
         if(!document.hidden){
           hits.push({ origin:{latitude:+srclat, longitude:+srclong}, destination:{latitude:+dstlat, longitude:+dstlong} });
@@ -324,9 +334,12 @@
           boom.push({ radius:7, latitude:+dstlat, longitude:+dstlong, fillOpacity:0.5, attk:which_attack });
           map.bubbles(boom, { popupTemplate:function(geo,data){ return '<div class="hoverinfo">'+data.attk+'</div>'; } });
 
-          $('#log').append(srccountry + " (" + randomIP() + ") attacks " + attackdiv_slatlong + " (" + randomIP() + ") <span style='color:steelblue'>(" + which_attack + ")</span><br/>");
+          $('#log').append(srccountry + " (" + randomIP() + ") " +
+            " <span style='color:red'>attacks</span> " + attackdiv_slatlong + " (" + randomIP() + ") " +
+            " <span style='color:steelblue'>(" + which_attack + ")</span> " + "<br/>");
           $('#attackdiv').animate({scrollTop: $('#attackdiv').prop('scrollHeight')}, 500);
         }
+
         this.interval=getRandomInt(attack_min,attack_max);
         this.init();
       }
@@ -336,7 +349,7 @@
     attacks.init();
     d3.select(window).on('resize', function(){ location.reload(); });
 
-    // Button handlers for options (toggle URL params)
+    // Option buttons (toggle URL params)
     document.getElementById('btn-busy').onclick   = function(){ setParams({bad_day: getParam('bad_day') ? null : 1}); };
     document.getElementById('btn-sound').onclick  = function(){ setParams({nofx: getParam('nofx') ? null : 1}); };
     document.getElementById('btn-palette').onclick= function(){
@@ -347,7 +360,7 @@
     };
   </script>
 
-  <!-- Unified zoom/pan (transform ALL layers together). Exposes window.zoomToLonLat for buttons. -->
+  <!-- Unified zoom/pan (transform ALL layers together) + Zoom buttons that also switch arc destination -->
   <script>
   (function enableUnifiedZoom(){
     function ready(){
@@ -381,15 +394,15 @@
               .attr('transform', 'translate(' + tx + ',' + ty + ') scale(' + k + ')');
       };
 
-      // Hook up zoom buttons (no auto-zoom)
-      var PHX = { lon:-112.0740, lat:33.4484, k: 8.8 };
-      var TUS = { lon:-110.9747, lat:32.2226, k: 9.8 };
-      var MESA= { lon:-111.8315, lat:33.4152, k:10.2 };
+      // Hook up zoom buttons — also set currentTarget for arcs
+      var PHX  = { lon:-112.0740, lat:33.4484, k:8.8 };
+      var TUS  = { lon:-110.9747, lat:32.2226, k:9.8 };
+      var MESA = { lon:-111.8315, lat:33.4152, k:10.2 };
 
-      document.getElementById('zoom-phx').onclick  = function(){ window.zoomToLonLat(PHX.lon,  PHX.lat,  PHX.k);  };
-      document.getElementById('zoom-tus').onclick  = function(){ window.zoomToLonLat(TUS.lon,  TUS.lat,  TUS.k);  };
-      document.getElementById('zoom-mesa').onclick = function(){ window.zoomToLonLat(MESA.lon, MESA.lat, MESA.k); };
-      document.getElementById('zoom-reset').onclick= function(){ window.zoomToLonLat(-98, 38, 1.2); };
+      document.getElementById('zoom-phx').onclick  = function(){ currentTarget={lat:PHX.lat,  lon:PHX.lon};  window.zoomToLonLat(PHX.lon,  PHX.lat,  PHX.k);  };
+      document.getElementById('zoom-tus').onclick  = function(){ currentTarget={lat:TUS.lat,  lon:TUS.lon};  window.zoomToLonLat(TUS.lon,  TUS.lat,  TUS.k);  };
+      document.getElementById('zoom-mesa').onclick = function(){ currentTarget={lat:MESA.lat, lon:MESA.lon}; window.zoomToLonLat(MESA.lon, MESA.lat, MESA.k); };
+      document.getElementById('zoom-reset').onclick= function(){ currentTarget=null; window.zoomToLonLat(-98, 38, 1.2); };
     }
     ready();
   })();
