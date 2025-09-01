@@ -25,7 +25,7 @@
   }
   #toolbar button:hover{ background:#151515; }
 
-  #container1{ position:relative; width:100vw; height:100vh; max-width:100%; max-height:100%; }
+  #container1{ position:relative; width:100vw; height:100vh; }
 
   #attackdiv{
     font-family: monospace; font-size:10px;
@@ -40,7 +40,6 @@
   }
   #legendBox .sw{ display:inline-block; width:12px; height:6px; border-radius:1px; margin-right:6px; }
 
-  /* Hover tooltip for arcs */
   #tooltip{
     position:fixed; z-index:20; display:none; pointer-events:none;
     background:rgba(20,20,20,0.95); color:#eaeaea; border:1px solid #333; border-radius:6px;
@@ -52,18 +51,8 @@
   #about{ display:none; }
   #aboutdiv{ text-align:right; width:100px; height:100px; top:0; right:0; position:fixed; padding:10px; color:#fff; z-index:12; }
   #ccdiv{ text-align:right; width:100px; height:20px; bottom:0; right:0; position:fixed; padding:5px; color:#fff; z-index:12; }
-
-  /* SimpleModal defaults (unchanged) */
-  #simplemodal-overlay { background-color:#000; }
-  #simplemodal-container {height:460px; width:600px; color:#bbb; background:#333; border:4px solid #444; padding:12px;}
-  #simplemodal-container .simplemodal-data {padding:8px;}
-  #simplemodal-container code {background:#141414; border-left:3px solid #65B43D; color:#bbb; display:block; font-size:12px; margin-bottom:12px; padding:4px 6px 6px;}
-  #simplemodal-container a {color:#ddd;}
-  #simplemodal-container a.modalCloseImg {background:url(x.png) no-repeat; width:25px; height:29px; display:inline; z-index:3200; position:absolute; top:-15px; right:-18px; cursor:pointer;}
-  #simplemodal-container h3 {color:#84b8d9;}
 </style>
 
-<!-- libs -->
 <script src="https://d3js.org/d3.v3.min.js"></script>
 <script src="https://d3js.org/d3.geo.projection.v0.min.js"></script>
 <script src="https://d3js.org/topojson.v1.min.js"></script>
@@ -73,35 +62,20 @@
 
 <script>
   function about(){ $("#about").modal(); }
-
-  function getParam(name){
-    const url = new URL(window.location.href);
-    return url.searchParams.get(name);
-  }
+  function getParam(name){ try{ return new URL(window.location.href).searchParams.get(name);}catch(e){return null;} }
   function setParams(obj){
-    const url = new URL(window.location.href);
+    const url=new URL(window.location.href);
     Object.keys(obj).forEach(k=>{
-      const v = obj[k];
-      if (v===null||v===undefined||v==='') url.searchParams.delete(k);
+      const v=obj[k];
+      if(v===null||v===undefined||v==='') url.searchParams.delete(k);
       else url.searchParams.set(k,v);
     });
-    window.location.href = url.toString();
+    window.location.href=url.toString();
   }
 </script>
 </head>
 
 <body>
-  <!-- sounds -->
-  <audio id="starwars" src="Blaster-Solo.wav" preload="auto"></audio>
-  <audio id="tng" src="tng_torpedo_clean.mp3" preload="auto"></audio>
-  <audio id="b5" src="B5-interceptor1.wav" preload="auto"></audio>
-  <audio id="wargames" src="WarGames-KeyPress.wav" preload="auto"></audio>
-  <audio id="pew" src="pew.mp3" preload="auto"></audio>
-  <audio id="galaga" src="shot_sound.mp3" preload="auto"></audio>
-  <audio id="asteroids" src="asteroids.mp3" preload="auto"></audio>
-  <audio id="china" src="china.mp3" preload="auto"></audio>
-  <audio id="timallen" src="timallen.wav" preload="auto"></audio>
-
   <div id="titlediv">Demo Dashboard Attack Map</div>
 
   <div id="toolbar">
@@ -110,17 +84,11 @@
     <button onclick="setParams({drill_mode:1,lat:32.2226,lon:-110.9747,city_name:'tucson'})">Tucson</button>
     <button onclick="setParams({drill_mode:1,lat:33.4152,lon:-111.8315,city_name:'mesa'})">Mesa</button>
     <button onclick="setParams({drill_mode:null,lat:null,lon:null,city_name:null})">Random</button>
-
     <span style="margin-left:14px"></span>
     <strong>Options:</strong>
-    <button onclick="setParams({nofx: getParam('nofx')==='1' ? '0' : '1'})">Toggle Sounds</button>
-    <button onclick="setParams({bad_day: getParam('bad_day') ? null : 1})">Busy Day</button>
-    <button onclick="(function(){
-      const g=getParam('greenattacks'); const r=getParam('redattacks');
-      if(g){ setParams({greenattacks:null,redattacks:1}); }
-      else if(r){ setParams({redattacks:null}); }
-      else { setParams({greenattacks:1,redattacks:null}); }
-    })()">Green/Red</button>
+    <button onclick="setParams({nofx: getParam('nofx')==='1' ? '0':'1'})">Toggle Sounds</button>
+    <button onclick="setParams({bad_day: getParam('bad_day')? null:1})">Busy Day</button>
+    <button onclick="(function(){const g=getParam('greenattacks');const r=getParam('redattacks');if(g){setParams({greenattacks:null,redattacks:1});}else if(r){setParams({redattacks:null});}else{setParams({greenattacks:1,redattacks:null});}})()">Green/Red</button>
   </div>
 
   <center><div id="container1"></div></center>
@@ -132,249 +100,111 @@
 
   <div id="attackdiv"></div>
   <div id="aboutdiv"><i class="fa fa-question-circle fa-2x" onClick="about();"></i></div>
-  <div id="ccdiv">
-    <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">
-      <img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/80x15.png" />
-    </a>
-  </div>
-
-  <div id="about">
-    <h3>About IPew</h3>
-    Attack maps are the <span style="font-family: monospace;">&lt;blink&gt;</span> tag of information security… (original text unchanged)<br/><br/>
-    Check the <a target=_blank href="https://github.com/hrbrmstr/pewpew">GitHub repo</a> for full docs.
-  </div>
-
-  <!-- Arc hover tooltip -->
+  <div id="ccdiv"><a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">
+    <img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/80x15.png" /></a></div>
+  <div id="about"><h3>About IPew</h3> Demo fork…</div>
   <div id="tooltip"></div>
 
-  <a href="#!" class="modal-close" title="Close this modal" data-dismiss="modal" data-close="Close">&times;</a>
+<script>
+attack_min=100;attack_max=2000;
 
-  <script>
-    attack_min = 100; attack_max = 2000;
+$.extend({getUrlVars:function(){var vars=[],hash;var qPos=window.location.href.indexOf('?');var hashes=(qPos===-1)?[]:window.location.href.slice(qPos+1).split('&');for(var i=0;i<hashes.length;i++){hash=hashes[i].split('=');vars.push(hash[0]);vars[hash[0]]=hash[1];}return vars;},getUrlVar:function(name){return $.getUrlVars()[name];}});
 
-    var attack_type = [ "any port scan in a storm", "ssh brutish force", "Thought Leader Tweet",
-                        "SYN FLOOD BA-BY", "Spotty", "Heartbleed Hotel", "Po_ODLE", "Sharknado",
-                        "CORGI Attack", "Ping of DOOM", "Conficker", "Goldfinger", "SANDPAPER",
-                        "SNAILshock", "Spaghetti RAT", "Driduplex" ];
+var bad_day=$.getUrlVar('bad_day');
+var nofx=$.getUrlVar('nofx');
+var drill_mode=$.getUrlVar("drill_mode");
+var in_lat=$.getUrlVar("lat");
+var in_lon=$.getUrlVar("lon");
+var destination=$.getUrlVar("destination");
+var greenattacks=$.getUrlVar("greenattacks");
+var redattacks=$.getUrlVar("redattacks");
+var city_name=$.getUrlVar("city_name");
 
-    $.extend({
-      getUrlVars: function(){
-        var vars=[], hash;
-        var qPos = window.location.href.indexOf('?');
-        var hashes = (qPos===-1)?[]:window.location.href.slice(qPos+1).split('&');
-        for (var i=0; i<hashes.length; i++){
-          hash = hashes[i].split('=');
-          vars.push(hash[0]); vars[hash[0]] = hash[1];
-        }
-        return vars;
-      },
-      getUrlVar: function(name){ return $.getUrlVars()[name]; }
-    });
+var rate=$.getUrlVar("rate");
+var rate_min=$.getUrlVar("rate_min");
+var rate_max=$.getUrlVar("rate_max");
+var lingerParam=$.getUrlVar("linger");
 
-    var norse_mode   = $.getUrlVar('norse_mode');
-    var bad_day      = $.getUrlVar('bad_day');
-    var chatt_mode   = $.getUrlVar('chatt_mode');
-    var china_mode   = $.getUrlVar('china_mode');
-    var dprk_mode    = $.getUrlVar('dprk_mode');
-    var employee_mode= $.getUrlVar('employee_mode');
-    var employee_fname=$.getUrlVar('employee_fname');
-    var employee_lname=$.getUrlVar('employee_lname');
-    var origin       = $.getUrlVar('origin');
-    var random_mode  = $.getUrlVar('random_mode');
-    var nofx         = $.getUrlVar('nofx');
-    var drill_mode   = $.getUrlVar("drill_mode");
-    var in_lat       = $.getUrlVar("lat");
-    var in_lon       = $.getUrlVar("lon");
-    var destination  = $.getUrlVar("destination");
-    var greenattacks = $.getUrlVar("greenattacks");
-    var redattacks   = $.getUrlVar("redattacks");
-    var city_name    = $.getUrlVar("city_name");
+if(typeof nofx==='undefined'){ nofx='1'; }
+if(typeof bad_day!=='undefined'){ attack_min=200;attack_max=200; }
+else{
+  if(rate){ attack_min=attack_max=Math.max(200,parseInt(rate,10)||1200); }
+  else{
+    var rmin=Math.max(300,parseInt(rate_min,10)||900);
+    var rmax=Math.max(rmin+200,parseInt(rate_max,10)||1600);
+    attack_min=rmin;attack_max=rmax;
+  }
+}
+var LINGER=Math.max(5,parseInt(lingerParam,10)||30);
 
-    // Default to muted if param is missing
-    if (typeof nofx === 'undefined') { nofx = '1'; }
+var map=new Datamap({scope:'world',element:document.getElementById('container1'),projection:'winkel3',fills:{defaultFill:'black'},geographyConfig:{hideAntarctica:true,borderWidth:0.75,borderColor:'#4393c3',popupOnHover:true,highlightOnHover:false}});
 
-    if (typeof bad_day !== 'undefined'){ attack_min=200; attack_max=200; }
+var centers=[],slatlong=[],cnlatlong=[];
+d3.tsv("country_centroids_primary.csv",function(d){centers=d;});
+d3.csv("samplatlong.csv",function(d){slatlong=d;});
+d3.csv("cnlatlong.csv",function(d){cnlatlong=d;});
 
-    var map=new Datamap({
-      scope:'world',
-      element:document.getElementById('container1'),
-      projection:'winkel3',
-      fills:{ defaultFill:'black' },
-      geographyConfig:{
-        dataUrl:null, hideAntarctica:true, borderWidth:0.75, borderColor:'#4393c3',
-        popupTemplate:function(geography,data){ return '<div class="hoverinfo" style="color:white;background:black">'+geography.properties.name+'</div>'; },
-        popupOnHover:true, highlightOnHover:false, highlightFillColor:'black',
-        highlightBorderColor:'rgba(250, 15, 160, 0.2)', highlightBorderWidth:2
-      }
-    });
+function FixedQueue(size,iv){iv=(iv||[]);var q=Array.apply(null,iv);q.fixedSize=size;q.push=FixedQueue.push;q.splice=FixedQueue.splice;q.unshift=FixedQueue.unshift;FixedQueue.trimTail.call(q);return q;}
+FixedQueue.trimHead=function(){if(this.length<=this.fixedSize){return;}Array.prototype.splice.call(this,0,(this.length-this.fixedSize));};
+FixedQueue.trimTail=function(){if(this.length<=this.fixedSize){return;}Array.prototype.splice.call(this,this.fixedSize,(this.length-this.fixedSize));};
+FixedQueue.wrapMethod=function(m,tm){var w=function(){var method=Array.prototype[m];var result=method.apply(this,arguments);tm.call(this);return result;};return w;};
+FixedQueue.push=FixedQueue.wrapMethod("push",FixedQueue.trimHead);
+FixedQueue.splice=FixedQueue.wrapMethod("splice",FixedQueue.trimTail);
+FixedQueue.unshift=FixedQueue.wrapMethod("unshift",FixedQueue.trimTail);
 
-    var centers=[], slatlong=[], cnlatlong=[];
-    d3.tsv("country_centroids_primary.csv", function(data){ centers=data; });
-    d3.csv("samplatlong.csv", function(data){ slatlong=data; });
-    d3.csv("cnlatlong.csv", function(data){ cnlatlong=data; });
+var hits=FixedQueue(LINGER,[]),boom=FixedQueue(Math.min(LINGER,50),[]),arcMeta=FixedQueue(LINGER,[]);
+var tooltip=d3.select('#tooltip');
 
-    // fixed queues
-    function FixedQueue(size,initialValues){
-      initialValues=(initialValues||[]);
-      var queue=Array.apply(null,initialValues);
-      queue.fixedSize=size; queue.push=FixedQueue.push; queue.splice=FixedQueue.splice; queue.unshift=FixedQueue.unshift;
-      FixedQueue.trimTail.call(queue); return queue;
-    }
-    FixedQueue.trimHead=function(){ if(this.length<=this.fixedSize){return;} Array.prototype.splice.call(this,0,(this.length-this.fixedSize)); };
-    FixedQueue.trimTail=function(){ if(this.length<=this.fixedSize){return;} Array.prototype.splice.call(this,this.fixedSize,(this.length-this.fixedSize)); };
-    FixedQueue.wrapMethod=function(methodName,trimMethod){
-      var wrapper=function(){ var method=Array.prototype[methodName]; var result=method.apply(this,arguments); trimMethod.call(this); return result; };
-      return wrapper;
-    };
-    FixedQueue.push=FixedQueue.wrapMethod("push",FixedQueue.trimHead);
-    FixedQueue.splice=FixedQueue.wrapMethod("splice",FixedQueue.trimTail);
-    FixedQueue.unshift=FixedQueue.wrapMethod("unshift",FixedQueue.trimTail);
+function bindHoverFor(el,meta){
+  d3.select(el).on('mousemove',function(){
+    var ev=d3.event;
+    tooltip.style('display','block').style('left',(ev.pageX+12)+'px').style('top',(ev.pageY+12)+'px')
+      .html('<div class="ttl">'+meta.attack+'</div>'+'From: '+meta.from+' ('+meta.srcIP+')<br>'+'To: '+meta.to+' ('+meta.dstIP+')');
+  }).on('mouseout',function(){tooltip.style('display','none');});
+}
 
-    var hits=FixedQueue(7,[]), boom=FixedQueue(7,[]), arcMeta=FixedQueue(7,[]);
-    var tooltip = d3.select('#tooltip');
+function getRandomInt(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+function getOctet(){return Math.round(Math.random()*255);}
+function randomIP(){return(getOctet()+'.'+getOctet()+'.'+getOctet()+'.'+getOctet());}
+function getStroke(){return Math.round(Math.random()*100);}
 
-    // Bind hover behavior reading metadata off each path element (not index)
-    function bindHoverFor(el, meta){
-      d3.select(el)
-        .on('mousemove', function(){
-          var ev = d3.event;
-          tooltip.style('display','block')
-                 .style('left', (ev.pageX + 12)+'px')
-                 .style('top',  (ev.pageY + 12)+'px')
-                 .html(
-                   '<div class="ttl">'+meta.attack+'</div>'+
-                   'From: '+meta.from+' ('+meta.srcIP+')<br>'+
-                   'To: '+meta.to+' ('+meta.dstIP+')'
-                 );
-        })
-        .on('mouseout', function(){
-          tooltip.style('display','none');
-        });
-    }
+var attacks={interval:getRandomInt(attack_min,attack_max),init:function(){setTimeout(jQuery.proxy(this.getData,this),this.interval);},getData:function(){
+  var dst=Math.floor((Math.random()*slatlong.length));
+  var src=Math.floor((Math.random()*slatlong.length));
+  if(dst==src){dst=src+1;if(dst>slatlong.length-1){dst=src-1;}}
 
-    function getRandomInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
-    function getOctet(){ return Math.round(Math.random()*255); }
-    function randomIP(){ return(getOctet()+'.'+getOctet()+'.'+getOctet()+'.'+getOctet()); }
-    function getStroke(){ return Math.round(Math.random()*100); }
-    function getDestination(){ return Math.round(Math.random()*100); }
+  if(nofx==='0'){document.getElementById('starwars').load();document.getElementById('starwars').play();}
 
-    var attacks={
-      interval:getRandomInt(attack_min,attack_max),
-      init:function(){ setTimeout(jQuery.proxy(this.getData,this), this.interval); },
-      getData:function(){
-        if(typeof norse_mode!=='undefined'){ return; }
-        if(typeof random_mode!=='undefined'){ Math.floor((Math.random()*slatlong.length)); }
+  var srclat=slatlong[src].lat,srclong=slatlong[src].long;
+  var dstlat=slatlong[dst].lat,dstlong=slatlong[dst].long;
+  var which_attack="Attack "+Math.floor(Math.random()*100);
+  var srccountry=(slatlong[src]["country"]||'??').toUpperCase();
 
-        var dst=Math.floor((Math.random()*slatlong.length));
-        var src=Math.floor((Math.random()*slatlong.length));
-        if(dst==src){ dst=src+1; if(dst>slatlong.length-1){ dst=src-1; } }
+  var attackdiv_slatlong=(slatlong[dst]["country"]||'??');
+  if(typeof drill_mode!=='undefined' && in_lat && in_lon){dstlat=in_lat;dstlong=in_lon;attackdiv_slatlong=(city_name||'target');}
 
-        // sounds — play only when nofx === '0'
-        var snd_id="starwars";
-        if(nofx === '0'){ document.getElementById(snd_id).load(); document.getElementById(snd_id).play(); }
+  var strokeColor=(typeof greenattacks!=='undefined')?'green':(typeof redattacks!=='undefined')?'red':(getStroke()<70?'green':'red');
 
-        var srclat=slatlong[src].lat, srclong=slatlong[src].long;
-        var dstlat=slatlong[dst].lat, dstlong=slatlong[dst].long;
-        var which_attack=attack_type[Math.floor((Math.random()*attack_type.length))];
-        var srccountry=slatlong[src]["country"]; // two-letter code
+  var srcIP=randomIP(),dstIP=randomIP();
+  if(!document.hidden){
+    var newHit={origin:{latitude:+srclat,longitude:+srclong},destination:{latitude:+dstlat,longitude:+dstlong}};
+    hits.push(newHit);
+    var meta={from:srccountry,to:attackdiv_slatlong,attack:which_attack,srcIP:srcIP,dstIP:dstIP};
+    arcMeta.push(meta);
+    map.arc([newHit],{strokeWidth:2,strokeColor:strokeColor});
+    var sel=d3.select('#container1').selectAll('path.datamaps-arc');var nodes=sel[0];
+    if(nodes&&nodes.length){var last=nodes[nodes.length-1];last.__meta=meta;bindHoverFor(last,meta);}
+    if(nodes&&nodes.length>hits.fixedSize){var oldest=nodes[0];if(oldest&&oldest.parentNode){oldest.parentNode.removeChild(oldest);}}
+    boom.push({radius:7,latitude:+dstlat,longitude:+dstlong,fillOpacity:0.5,attk:which_attack});
+    map.bubbles(boom,{popupTemplate:function(geo,d){return '<div class="hoverinfo">'+d.attk+'</div>';}});
 
-        if(typeof china_mode!=='undefined'){
-          srclat=cnlatlong[src].lat; srclong=cnlatlong[src].long;
-          if(cnlatlong[src].country=="chn"){ which_attack="ZOMGOSH CHINA!!!!!!"; }
-          srccountry=cnlatlong[src]["country"];
-        } else if(typeof dprk_mode!=='undefined'){
-          srclat=39.0194; srclong=125.7381; which_attack="ZOMG NORTH KOREAZ!!!"; srccountry="kp";
-        } else if(typeof chatt_mode!=='undefined'){
-          srclat=35.0456297; srclong=-85.30968; which_attack="OMG NATION STATE CHATTANOOGA!!!"; srccountry="usa";
-        } else if(typeof employee_mode!=='undefined'){
-          if(typeof in_lat!=='undefined' && typeof in_lon!=='undefined'){ srclat=in_lat; srclong=in_lon; }
-          which_attack="Former employee attack";
-          if(typeof employee_fname!=='undefined' && typeof employee_lname!=='undefined'){ which_attack += ":"+employee_fname+" "+employee_lname; }
-          srccountry="usa";
-        } else if(typeof origin!=='undefined'){
-          srccountry=origin.toUpperCase();
-          var center_id=0;
-          for(i=0;i<centers.length;i++){ center_id=i; if(centers[i].FIPS10===srccountry){ break; } }
-          srccountry=origin.toLowerCase();
-          srclat=centers[center_id].LAT; srclong=centers[center_id].LONG;
-        }
-
-        var attackdiv_slatlong;
-        if(typeof destination!=='undefined' && getDestination()<80){
-          var center_id=0, dstcountry=destination.toUpperCase();
-          for(i=0;i<centers.length;i++){ center_id=i; if(centers[i].FIPS10===dstcountry){ break; } }
-          dstcountry=destination.toLowerCase();
-          attackdiv_slatlong=dstcountry;
-          dstlat=centers[center_id].LAT; dstlong=centers[center_id].LONG;
-        } else {
-          attackdiv_slatlong=slatlong[dst]["country"];
-        }
-
-        var strokeColor=(typeof greenattacks!=='undefined') ? 'green'
-                       : (typeof redattacks!=='undefined') ? 'red'
-                       : (getStroke()<70 ? 'green':'red');
-
-        // lock destination to selected city in drill mode
-        if(typeof drill_mode!=='undefined' && in_lat && in_lon){
-          dstlat=in_lat; dstlong=in_lon;
-          attackdiv_slatlong = (typeof city_name!=='undefined' && city_name) ? city_name : 'target';
-        }
-
-        var srcIP = randomIP();
-        var dstIP = randomIP();
-
-        if(!document.hidden){
-          // prepare the new arc & metadata
-          var newHit = {
-            origin:{latitude:+srclat, longitude:+srclong},
-            destination:{latitude:+dstlat, longitude:+dstlong}
-          };
-          hits.push(newHit);
-          var meta = {
-            from: (srccountry || '??').toUpperCase(),
-            to: attackdiv_slatlong,
-            attack: which_attack,
-            srcIP: srcIP,
-            dstIP: dstIP
-          };
-          arcMeta.push(meta);
-
-          // draw ONLY the new arc (append mode), not the whole queue
-          map.arc([newHit], {strokeWidth:2, strokeColor:strokeColor});
-
-          // tag the newest path(s) with the meta and bind hover
-          var sel = d3.select('#container1').selectAll('path.datamaps-arc');
-          // last element in the current selection is the newly appended arc path
-          var nodes = sel[0];
-          if (nodes && nodes.length){
-            var last = nodes[nodes.length-1];
-            last.__meta = meta;        // attach metadata directly
-            bindHoverFor(last, meta);  // bind tooltip handlers
-          }
-
-          // prune oldest path if we exceed the queue size
-          if (nodes && nodes.length > hits.fixedSize){
-            var oldest = nodes[0];
-            if (oldest && oldest.parentNode){ oldest.parentNode.removeChild(oldest); }
-          }
-
-          // bubble & log
-          boom.push({ radius:7, latitude:+dstlat, longitude:+dstlong, fillOpacity:0.5, attk:which_attack });
-          map.bubbles(boom, { popupTemplate:function(geo,data){ return '<div class="hoverinfo">'+data.attk+'</div>'; } });
-
-          $('#attackdiv').append(srccountry + " (" + srcIP + ") " +
-            " <span style='color:red'>attacks</span> " + attackdiv_slatlong + " (" + dstIP + ") " +
-            " <span style='color:steelblue'>(" + which_attack + ")</span> " + "<br/>");
-          $('#attackdiv').animate({scrollTop: $('#attackdiv').prop('scrollHeight')}, 500);
-        }
-
-        this.interval=getRandomInt(attack_min,attack_max);
-        this.init();
-      }
-    };
-
-    attacks.init();
-    d3.select(window).on('resize', function(){ location.reload(); });
-  </script>
+    $('#attackdiv').append(srccountry+" ("+srcIP+") "+"<span style='color:red'>attacks</span> "+attackdiv_slatlong+" ("+dstIP+") "+"<span style='color:steelblue'>("+which_attack+")</span><br/>");
+    $('#attackdiv').animate({scrollTop:$('#attackdiv').prop('scrollHeight')},500);
+  }
+  this.interval=getRandomInt(attack_min,attack_max);this.init();
+}};
+attacks.init();
+d3.select(window).on('resize',function(){location.reload();});
+</script>
 </body>
 </html>
