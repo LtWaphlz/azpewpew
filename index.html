@@ -13,7 +13,6 @@
     padding:5px; top:0; z-index:10; overflow-y:auto;
   }
 
-  /* Simple toolbar (does not touch map internals) */
   #toolbar{
     position:fixed; left:0; right:0; top:55px; z-index:11;
     display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:center;
@@ -34,7 +33,6 @@
     padding:5px; bottom:0; z-index:10; overflow-y:auto; border-top:1px solid #222;
   }
 
-  /* Fixed legend (never cut off by the log) */
   #legendBox{
     position:fixed; left:10px; bottom:130px; z-index:12;
     background:rgba(0,0,0,.85); border:1px solid #333; border-radius:6px;
@@ -65,7 +63,7 @@
   #simplemodal-container h3 {color:#84b8d9;}
 </style>
 
-<!-- Original libs -->
+<!-- libs -->
 <script src="https://d3js.org/d3.v3.min.js"></script>
 <script src="https://d3js.org/d3.geo.projection.v0.min.js"></script>
 <script src="https://d3js.org/topojson.v1.min.js"></script>
@@ -76,7 +74,6 @@
 <script>
   function about(){ $("#about").modal(); }
 
-  // URL helpers used by the buttons
   function getParam(name){
     const url = new URL(window.location.href);
     return url.searchParams.get(name);
@@ -107,7 +104,6 @@
 
   <div id="titlediv">Demo Dashboard Attack Map</div>
 
-  <!-- Toolbar: filter destination ONLY (no zoom) -->
   <div id="toolbar">
     <strong>Target:</strong>
     <button onclick="setParams({drill_mode:1,lat:33.4484,lon:-112.0740,city_name:'phoenix'})">Phoenix</button>
@@ -117,15 +113,18 @@
 
     <span style="margin-left:14px"></span>
     <strong>Options:</strong>
-    <!-- Explicit toggle: nofx=1 (muted) / nofx=0 (sound on) -->
     <button onclick="setParams({nofx: getParam('nofx')==='1' ? '0' : '1'})">Toggle Sounds</button>
     <button onclick="setParams({bad_day: getParam('bad_day') ? null : 1})">Busy Day</button>
-    <button onclick="(function(){ const g=getParam('greenattacks'); const r=getParam('redattacks'); if(g){ setParams({greenattacks:null,redattacks:1}); } else if(r){ setParams({redattacks:null}); } else { setParams({greenattacks:1,redattacks:null}); } })()">Green/Red</button>
+    <button onclick="(function(){
+      const g=getParam('greenattacks'); const r=getParam('redattacks');
+      if(g){ setParams({greenattacks:null,redattacks:1}); }
+      else if(r){ setParams({redattacks:null}); }
+      else { setParams({greenattacks:1,redattacks:null}); }
+    })()">Green/Red</button>
   </div>
 
   <center><div id="container1"></div></center>
 
-  <!-- Fixed legend -->
   <div id="legendBox">
     <div><span class="sw" style="background:#0f0;"></span>Green: lower-severity / benign</div>
     <div><span class="sw" style="background:#f00;"></span>Red: higher-severity / malicious</div>
@@ -148,19 +147,15 @@
   <!-- Arc hover tooltip -->
   <div id="tooltip"></div>
 
-  <!-- keep the close anchor the original code uses -->
   <a href="#!" class="modal-close" title="Close this modal" data-dismiss="modal" data-close="Close">&times;</a>
 
-  <!-- ==== IPEW SCRIPT (with drill_mode + city_name + default mute + arc tooltip + country FROM) ==== -->
   <script>
     attack_min = 100; attack_max = 2000;
 
-    attack_type = [ "any port scan in a storm", "ssh brutish force", "Thought Leader Tweet",
-                    "SYN FLOOD BA-BY", "Spotty", "Heartbleed Hotel", "Po_ODLE", "Sharknado",
-                    "CORGI Attack", "Ping of DOOM", "Conficker", "Goldfinger", "SANDPAPER",
-                    "SNAILshock", "Spaghetti RAT", "Driduplex" ];
-
-    audio_type  = [ "starwars", "tng", "b5", "wargames", "pew", "galaga", "asteroids", "china", "timallen" ];
+    var attack_type = [ "any port scan in a storm", "ssh brutish force", "Thought Leader Tweet",
+                        "SYN FLOOD BA-BY", "Spotty", "Heartbleed Hotel", "Po_ODLE", "Sharknado",
+                        "CORGI Attack", "Ping of DOOM", "Conficker", "Goldfinger", "SANDPAPER",
+                        "SNAILshock", "Spaghetti RAT", "Driduplex" ];
 
     $.extend({
       getUrlVars: function(){
@@ -186,30 +181,20 @@
     var employee_lname=$.getUrlVar('employee_lname');
     var origin       = $.getUrlVar('origin');
     var random_mode  = $.getUrlVar('random_mode');
-    var tng          = $.getUrlVar('tng');
-    var wargames     = $.getUrlVar('wargames');
-    var b5           = $.getUrlVar('b5');
     var nofx         = $.getUrlVar('nofx');
-    var pew          = $.getUrlVar('pew');
-    var allfx        = $.getUrlVar('allfx');
-    var galaga       = $.getUrlVar('galaga');
-    var asteroids    = $.getUrlVar('asteroids');
-    var china        = $.getUrlVar('china');
-    var timallen     = $.getUrlVar('timallen');
     var drill_mode   = $.getUrlVar("drill_mode");
     var in_lat       = $.getUrlVar("lat");
     var in_lon       = $.getUrlVar("lon");
     var destination  = $.getUrlVar("destination");
     var greenattacks = $.getUrlVar("greenattacks");
     var redattacks   = $.getUrlVar("redattacks");
-    var city_name    = $.getUrlVar("city_name"); // NEW
+    var city_name    = $.getUrlVar("city_name");
 
     // Default to muted if param is missing
     if (typeof nofx === 'undefined') { nofx = '1'; }
 
     if (typeof bad_day !== 'undefined'){ attack_min=200; attack_max=200; }
 
-    // IPew map
     var map=new Datamap({
       scope:'world',
       element:document.getElementById('container1'),
@@ -246,35 +231,32 @@
     FixedQueue.unshift=FixedQueue.wrapMethod("unshift",FixedQueue.trimTail);
 
     var hits=FixedQueue(7,[]), boom=FixedQueue(7,[]), arcMeta=FixedQueue(7,[]);
-
-    function getRandomInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
-    function getOctet(){ return Math.round(Math.random()*255); }
-    function randomIP(){ return(getOctet()+'.'+getOctet()+'.'+getOctet()+'.'+getOctet()); }
-    function getStroke(){ return Math.round(Math.random()*100); }
-    function getDestination(){ return Math.round(Math.random()*100); }
-
     var tooltip = d3.select('#tooltip');
 
-    function bindArcTooltips(){
-      // rebind each time after arcs are drawn so indices match hits/arcMeta
-      d3.select('#container1').selectAll('path.datamaps-arc')
-        .on('mousemove', function(d,i){
-          var m = arcMeta[i];
-          if(!m) return;
+    // Bind hover behavior reading metadata off each path element (not index)
+    function bindHoverFor(el, meta){
+      d3.select(el)
+        .on('mousemove', function(){
           var ev = d3.event;
           tooltip.style('display','block')
                  .style('left', (ev.pageX + 12)+'px')
                  .style('top',  (ev.pageY + 12)+'px')
                  .html(
-                   '<div class="ttl">'+m.attack+'</div>'+
-                   'From: '+m.from+' ('+m.srcIP+')<br>'+
-                   'To: '+m.to+' ('+m.dstIP+')'
+                   '<div class="ttl">'+meta.attack+'</div>'+
+                   'From: '+meta.from+' ('+meta.srcIP+')<br>'+
+                   'To: '+meta.to+' ('+meta.dstIP+')'
                  );
         })
         .on('mouseout', function(){
           tooltip.style('display','none');
         });
     }
+
+    function getRandomInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+    function getOctet(){ return Math.round(Math.random()*255); }
+    function randomIP(){ return(getOctet()+'.'+getOctet()+'.'+getOctet()+'.'+getOctet()); }
+    function getStroke(){ return Math.round(Math.random()*100); }
+    function getDestination(){ return Math.round(Math.random()*100); }
 
     var attacks={
       interval:getRandomInt(attack_min,attack_max),
@@ -289,23 +271,13 @@
 
         // sounds — play only when nofx === '0'
         var snd_id="starwars";
-        if(typeof tng!=='undefined') snd_id="tng";
-        if(typeof b5!=='undefined') snd_id="b5";
-        if(typeof wargames!=='undefined') snd_id="wargames";
-        if(typeof pew!=='undefined') snd_id="pew";
-        if(typeof galaga!=='undefined') snd_id="galaga";
-        if(typeof asteroids!=='undefined') snd_id="asteroids";
-        if(typeof china!=='undefined') snd_id="china";
-        if(typeof timallen!=='undefined') snd_id="timallen";
-        if(typeof allfx!=='undefined'){ snd_id=['starwars','tng','b5','wargames','pew','galaga','asteroids','china','timallen'][Math.floor((Math.random()*9))]; }
         if(nofx === '0'){ document.getElementById(snd_id).load(); document.getElementById(snd_id).play(); }
 
         var srclat=slatlong[src].lat, srclong=slatlong[src].long;
         var dstlat=slatlong[dst].lat, dstlong=slatlong[dst].long;
-        var which_attack=["any port scan in a storm","ssh brutish force","Thought Leader Tweet","SYN FLOOD BA-BY","Spotty","Heartbleed Hotel","Po_ODLE","Sharknado","CORGI Attack","Ping of DOOM","Conficker","Goldfinger","SANDPAPER","SNAILshock","Spaghetti RAT","Driduplex"][Math.floor((Math.random()*16))];
-        var srccountry=slatlong[src]["country"]; // two-letter ISO code (e.g., us, cn, ru)
+        var which_attack=attack_type[Math.floor((Math.random()*attack_type.length))];
+        var srccountry=slatlong[src]["country"]; // two-letter code
 
-        // variants (optional)
         if(typeof china_mode!=='undefined'){
           srclat=cnlatlong[src].lat; srclong=cnlatlong[src].long;
           if(cnlatlong[src].country=="chn"){ which_attack="ZOMGOSH CHINA!!!!!!"; }
@@ -327,7 +299,6 @@
           srclat=centers[center_id].LAT; srclong=centers[center_id].LONG;
         }
 
-        // Optional destination override by country code
         var attackdiv_slatlong;
         if(typeof destination!=='undefined' && getDestination()<80){
           var center_id=0, dstcountry=destination.toUpperCase();
@@ -339,43 +310,58 @@
           attackdiv_slatlong=slatlong[dst]["country"];
         }
 
-        // Color selection
-        var strokeColor='green';
-        if(typeof greenattacks!=='undefined'){ strokeColor='green'; }
-        else if(typeof redattacks!=='undefined'){ strokeColor='red'; }
-        else { strokeColor=(Math.round(Math.random()*100)<70)?'green':'red'; }
+        var strokeColor=(typeof greenattacks!=='undefined') ? 'green'
+                       : (typeof redattacks!=='undefined') ? 'red'
+                       : (getStroke()<70 ? 'green':'red');
 
-        // >>> Force destination to selected city when drill_mode is on
+        // lock destination to selected city in drill mode
         if(typeof drill_mode!=='undefined' && in_lat && in_lon){
           dstlat=in_lat; dstlong=in_lon;
           attackdiv_slatlong = (typeof city_name!=='undefined' && city_name) ? city_name : 'target';
         }
 
-        // Generate stable IPs per event for both log and tooltip
         var srcIP = randomIP();
         var dstIP = randomIP();
 
         if(!document.hidden){
-          // push arc + metadata in lockstep so indices match
-          hits.push({
+          // prepare the new arc & metadata
+          var newHit = {
             origin:{latitude:+srclat, longitude:+srclong},
             destination:{latitude:+dstlat, longitude:+dstlong}
-          });
-          arcMeta.push({
-            from: (srccountry || '??').toUpperCase(),  // <- ALWAYS COUNTRY CODE IN UPPERCASE
+          };
+          hits.push(newHit);
+          var meta = {
+            from: (srccountry || '??').toUpperCase(),
             to: attackdiv_slatlong,
             attack: which_attack,
             srcIP: srcIP,
             dstIP: dstIP
-          });
+          };
+          arcMeta.push(meta);
 
-          map.arc(hits, {strokeWidth:2, strokeColor:strokeColor});
-          bindArcTooltips(); // ensure handlers match the current arcs
+          // draw ONLY the new arc (append mode), not the whole queue
+          map.arc([newHit], {strokeWidth:2, strokeColor:strokeColor});
 
+          // tag the newest path(s) with the meta and bind hover
+          var sel = d3.select('#container1').selectAll('path.datamaps-arc');
+          // last element in the current selection is the newly appended arc path
+          var nodes = sel[0];
+          if (nodes && nodes.length){
+            var last = nodes[nodes.length-1];
+            last.__meta = meta;        // attach metadata directly
+            bindHoverFor(last, meta);  // bind tooltip handlers
+          }
+
+          // prune oldest path if we exceed the queue size
+          if (nodes && nodes.length > hits.fixedSize){
+            var oldest = nodes[0];
+            if (oldest && oldest.parentNode){ oldest.parentNode.removeChild(oldest); }
+          }
+
+          // bubble & log
           boom.push({ radius:7, latitude:+dstlat, longitude:+dstlong, fillOpacity:0.5, attk:which_attack });
           map.bubbles(boom, { popupTemplate:function(geo,data){ return '<div class="hoverinfo">'+data.attk+'</div>'; } });
 
-          // log uses original srccountry (as-is), can also .toUpperCase() if you prefer
           $('#attackdiv').append(srccountry + " (" + srcIP + ") " +
             " <span style='color:red'>attacks</span> " + attackdiv_slatlong + " (" + dstIP + ") " +
             " <span style='color:steelblue'>(" + which_attack + ")</span> " + "<br/>");
