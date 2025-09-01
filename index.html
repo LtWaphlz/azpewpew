@@ -151,7 +151,7 @@
   <!-- keep the close anchor the original code uses -->
   <a href="#!" class="modal-close" title="Close this modal" data-dismiss="modal" data-close="Close">&times;</a>
 
-  <!-- ==== ORIGINAL IPEW SCRIPT (kept), with drill_mode + city_name + default mute + arc tooltip ==== -->
+  <!-- ==== IPEW SCRIPT (with drill_mode + city_name + default mute + arc tooltip + country FROM) ==== -->
   <script>
     attack_min = 100; attack_max = 2000;
 
@@ -303,7 +303,7 @@
         var srclat=slatlong[src].lat, srclong=slatlong[src].long;
         var dstlat=slatlong[dst].lat, dstlong=slatlong[dst].long;
         var which_attack=["any port scan in a storm","ssh brutish force","Thought Leader Tweet","SYN FLOOD BA-BY","Spotty","Heartbleed Hotel","Po_ODLE","Sharknado","CORGI Attack","Ping of DOOM","Conficker","Goldfinger","SANDPAPER","SNAILshock","Spaghetti RAT","Driduplex"][Math.floor((Math.random()*16))];
-        var srccountry=slatlong[src]["country"];
+        var srccountry=slatlong[src]["country"]; // two-letter ISO code (e.g., us, cn, ru)
 
         // variants (optional)
         if(typeof china_mode!=='undefined'){
@@ -357,9 +357,12 @@
 
         if(!document.hidden){
           // push arc + metadata in lockstep so indices match
-          hits.push({ origin:{latitude:+srclat, longitude:+srclong}, destination:{latitude:+dstlat, longitude:+dstlong} });
+          hits.push({
+            origin:{latitude:+srclat, longitude:+srclong},
+            destination:{latitude:+dstlat, longitude:+dstlong}
+          });
           arcMeta.push({
-            from: (typeof drill_mode!=='undefined' && in_lat && in_lon) ? (city_name || 'target') : srccountry,
+            from: (srccountry || '??').toUpperCase(),  // <- ALWAYS COUNTRY CODE IN UPPERCASE
             to: attackdiv_slatlong,
             attack: which_attack,
             srcIP: srcIP,
@@ -372,6 +375,7 @@
           boom.push({ radius:7, latitude:+dstlat, longitude:+dstlong, fillOpacity:0.5, attk:which_attack });
           map.bubbles(boom, { popupTemplate:function(geo,data){ return '<div class="hoverinfo">'+data.attk+'</div>'; } });
 
+          // log uses original srccountry (as-is), can also .toUpperCase() if you prefer
           $('#attackdiv').append(srccountry + " (" + srcIP + ") " +
             " <span style='color:red'>attacks</span> " + attackdiv_slatlong + " (" + dstIP + ") " +
             " <span style='color:steelblue'>(" + which_attack + ")</span> " + "<br/>");
