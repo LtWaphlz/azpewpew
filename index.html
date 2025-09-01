@@ -42,6 +42,15 @@
   }
   #legendBox .sw{ display:inline-block; width:12px; height:6px; border-radius:1px; margin-right:6px; }
 
+  /* Hover tooltip for arcs */
+  #tooltip{
+    position:fixed; z-index:20; display:none; pointer-events:none;
+    background:rgba(20,20,20,0.95); color:#eaeaea; border:1px solid #333; border-radius:6px;
+    padding:8px 10px; font-family:monospace; font-size:11px; max-width:260px; line-height:1.35;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  }
+  #tooltip .ttl{ font-weight:bold; color:#9fdcff; }
+
   #about{ display:none; }
   #aboutdiv{ text-align:right; width:100px; height:100px; top:0; right:0; position:fixed; padding:10px; color:#fff; z-index:12; }
   #ccdiv{ text-align:right; width:100px; height:20px; bottom:0; right:0; position:fixed; padding:5px; color:#fff; z-index:12; }
@@ -108,8 +117,9 @@
 
     <span style="margin-left:14px"></span>
     <strong>Options:</strong>
-    <button onclick="setParams({bad_day: getParam('bad_day')? null:1})">Busy Day</button>
-    <button onclick="setParams({nofx: getParam('nofx')? null:1})">Toggle Sounds</button>
+    <!-- Explicit toggle: nofx=1 (muted) / nofx=0 (sound on) -->
+    <button onclick="setParams({nofx: getParam('nofx')==='1' ? '0' : '1'})">Toggle Sounds</button>
+    <button onclick="setParams({bad_day: getParam('bad_day') ? null : 1})">Busy Day</button>
     <button onclick="(function(){ const g=getParam('greenattacks'); const r=getParam('redattacks'); if(g){ setParams({greenattacks:null,redattacks:1}); } else if(r){ setParams({redattacks:null}); } else { setParams({greenattacks:1,redattacks:null}); } })()">Green/Red</button>
   </div>
 
@@ -135,10 +145,13 @@
     Check the <a target=_blank href="https://github.com/hrbrmstr/pewpew">GitHub repo</a> for full docs.
   </div>
 
+  <!-- Arc hover tooltip -->
+  <div id="tooltip"></div>
+
   <!-- keep the close anchor the original code uses -->
   <a href="#!" class="modal-close" title="Close this modal" data-dismiss="modal" data-close="Close">&times;</a>
 
-  <!-- ==== ORIGINAL IPEW SCRIPT (kept), with drill_mode + city_name ==== -->
+  <!-- ==== ORIGINAL IPEW SCRIPT (kept), with drill_mode + city_name + default mute + arc tooltip ==== -->
   <script>
     attack_min = 100; attack_max = 2000;
 
@@ -191,6 +204,9 @@
     var redattacks   = $.getUrlVar("redattacks");
     var city_name    = $.getUrlVar("city_name"); // NEW
 
+    // Default to muted if param is missing
+    if (typeof nofx === 'undefined') { nofx = '1'; }
+
     if (typeof bad_day !== 'undefined'){ attack_min=200; attack_max=200; }
 
     // IPew map
@@ -229,13 +245,36 @@
     FixedQueue.splice=FixedQueue.wrapMethod("splice",FixedQueue.trimTail);
     FixedQueue.unshift=FixedQueue.wrapMethod("unshift",FixedQueue.trimTail);
 
-    var hits=FixedQueue(7,[]), boom=FixedQueue(7,[]);
+    var hits=FixedQueue(7,[]), boom=FixedQueue(7,[]), arcMeta=FixedQueue(7,[]);
 
     function getRandomInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
     function getOctet(){ return Math.round(Math.random()*255); }
     function randomIP(){ return(getOctet()+'.'+getOctet()+'.'+getOctet()+'.'+getOctet()); }
     function getStroke(){ return Math.round(Math.random()*100); }
     function getDestination(){ return Math.round(Math.random()*100); }
+
+    var tooltip = d3.select('#tooltip');
+
+    function bindArcTooltips(){
+      // rebind each time after arcs are drawn so indices match hits/arcMeta
+      d3.select('#container1').selectAll('path.datamaps-arc')
+        .on('mousemove', function(d,i){
+          var m = arcMeta[i];
+          if(!m) return;
+          var ev = d3.event;
+          tooltip.style('display','block')
+                 .style('left', (ev.pageX + 12)+'px')
+                 .style('top',  (ev.pageY + 12)+'px')
+                 .html(
+                   '<div class="ttl">'+m.attack+'</div>'+
+                   'From: '+m.from+' ('+m.srcIP+')<br>'+
+                   'To: '+m.to+' ('+m.dstIP+')'
+                 );
+        })
+        .on('mouseout', function(){
+          tooltip.style('display','none');
+        });
+    }
 
     var attacks={
       interval:getRandomInt(attack_min,attack_max),
@@ -248,7 +287,7 @@
         var src=Math.floor((Math.random()*slatlong.length));
         if(dst==src){ dst=src+1; if(dst>slatlong.length-1){ dst=src-1; } }
 
-        // sounds
+        // sounds — play only when nofx === '0'
         var snd_id="starwars";
         if(typeof tng!=='undefined') snd_id="tng";
         if(typeof b5!=='undefined') snd_id="b5";
@@ -259,7 +298,7 @@
         if(typeof china!=='undefined') snd_id="china";
         if(typeof timallen!=='undefined') snd_id="timallen";
         if(typeof allfx!=='undefined'){ snd_id=['starwars','tng','b5','wargames','pew','galaga','asteroids','china','timallen'][Math.floor((Math.random()*9))]; }
-        if(typeof nofx==='undefined'){ document.getElementById(snd_id).load(); document.getElementById(snd_id).play(); }
+        if(nofx === '0'){ document.getElementById(snd_id).load(); document.getElementById(snd_id).play(); }
 
         var srclat=slatlong[src].lat, srclong=slatlong[src].long;
         var dstlat=slatlong[dst].lat, dstlong=slatlong[dst].long;
@@ -289,6 +328,7 @@
         }
 
         // Optional destination override by country code
+        var attackdiv_slatlong;
         if(typeof destination!=='undefined' && getDestination()<80){
           var center_id=0, dstcountry=destination.toUpperCase();
           for(i=0;i<centers.length;i++){ center_id=i; if(centers[i].FIPS10===dstcountry){ break; } }
@@ -311,15 +351,29 @@
           attackdiv_slatlong = (typeof city_name!=='undefined' && city_name) ? city_name : 'target';
         }
 
+        // Generate stable IPs per event for both log and tooltip
+        var srcIP = randomIP();
+        var dstIP = randomIP();
+
         if(!document.hidden){
+          // push arc + metadata in lockstep so indices match
           hits.push({ origin:{latitude:+srclat, longitude:+srclong}, destination:{latitude:+dstlat, longitude:+dstlong} });
+          arcMeta.push({
+            from: (typeof drill_mode!=='undefined' && in_lat && in_lon) ? (city_name || 'target') : srccountry,
+            to: attackdiv_slatlong,
+            attack: which_attack,
+            srcIP: srcIP,
+            dstIP: dstIP
+          });
+
           map.arc(hits, {strokeWidth:2, strokeColor:strokeColor});
+          bindArcTooltips(); // ensure handlers match the current arcs
 
           boom.push({ radius:7, latitude:+dstlat, longitude:+dstlong, fillOpacity:0.5, attk:which_attack });
           map.bubbles(boom, { popupTemplate:function(geo,data){ return '<div class="hoverinfo">'+data.attk+'</div>'; } });
 
-          $('#attackdiv').append(srccountry + " (" + randomIP() + ") " +
-            " <span style='color:red'>attacks</span> " + attackdiv_slatlong + " (" + randomIP() + ") " +
+          $('#attackdiv').append(srccountry + " (" + srcIP + ") " +
+            " <span style='color:red'>attacks</span> " + attackdiv_slatlong + " (" + dstIP + ") " +
             " <span style='color:steelblue'>(" + which_attack + ")</span> " + "<br/>");
           $('#attackdiv').animate({scrollTop: $('#attackdiv').prop('scrollHeight')}, 500);
         }
